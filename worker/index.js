@@ -254,6 +254,14 @@ async function adminRoute(request, env, url, form) {
   const db = env.DB;
   const [, , collection, id, extra] = url.pathname.split('/');
   if (extra !== undefined) return notFound();
+  if (!form && collection === 'bronlar' && id === 'bildirishnoma') {
+    const counts = await db.prepare(`
+      SELECT coalesce(max(rowid), 0) AS latest,
+        count(CASE WHEN status = 'pending' THEN 1 END) AS pending
+      FROM bookings
+    `).first();
+    return reply(JSON.stringify(counts), 200, { 'Content-Type': 'application/json; charset=utf-8' });
+  }
   if (!collection || collection === 'turlar') await ensureCatalog(db);
 
   if (form) {
