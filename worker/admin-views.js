@@ -1,3 +1,5 @@
+import { languages } from './i18n.js';
+import { tourTextLimits, translatedTourFields } from './tour-text.js';
 import { alert, categoryNames, escapeHtml, icon, layout, money, statusNames } from './views.js';
 
 const sections = { turlar: 'Turpaketlar', bronlar: 'Bronlar', tolov: 'To‘lov sozlamalari' };
@@ -55,7 +57,7 @@ function area(label, name, values, { limit, required = true, help } = {}) {
 
 const checked = (value) => value ? 'checked' : '';
 
-export function adminTourForm({ tour, values = tour ?? { category: 'domestic', days: 1, published: true }, error } = {}) {
+export function adminTourForm({ tour, values = tour ?? { category: 'domestic', days: 1, published: true }, translations, error } = {}) {
   const heading = tour ? 'Turpaketni tahrirlash' : 'Yangi turpaket';
   return adminShell(heading, 'turlar', `
     <article class="admin-panel editor">
@@ -78,6 +80,24 @@ export function adminTourForm({ tour, values = tour ?? { category: 'domestic', d
         ${area('Qisqa tavsif', 'summary', values, { limit: 240 })}
         ${area('Sayohat dasturi', 'itinerary', values, { limit: 2500, help: 'Har bir kun yoki bosqichni yangi qatorda yozing.' })}
         ${area('Narxga kiradigan xizmatlar', 'included', values, { limit: 1000, help: 'Har bir xizmatni yangi qatorda yozing.' })}
+        <fieldset class="translation-fields">
+          <legend>Turpaket tarjimalari</legend>
+          <p class="fine-print">Tarjima bo‘sh qoldirilsa, o‘zbekcha matn ko‘rsatiladi.</p>
+          ${['en', 'de'].map((language) => {
+            const text = translations?.[language] ?? translatedTourFields(tour, language);
+            const fields = Object.fromEntries(Object.entries(text).map(([key, value]) => [`${language}_${key}`, value]));
+            return `<details>
+              <summary lang="${language}">${languages[language]}</summary>
+              <div class="translation-inputs">
+                ${field('Turpaket nomi', `${language}_title`, fields, `maxlength="${tourTextLimits.title}"`)}
+                ${field('Manzil', `${language}_location`, fields, `maxlength="${tourTextLimits.location}"`)}
+                ${area('Qisqa tavsif', `${language}_summary`, fields, { limit: tourTextLimits.summary, required: false })}
+                ${area('Sayohat dasturi', `${language}_itinerary`, fields, { limit: tourTextLimits.itinerary, required: false })}
+                ${area('Narxga kiradigan xizmatlar', `${language}_included`, fields, { limit: tourTextLimits.included, required: false })}
+              </div>
+            </details>`;
+          }).join('')}
+        </fieldset>
         <div class="upload">
           <img data-photo-preview src="${escapeHtml(tour?.image || '/assets/unistay.svg')}" alt="Turpaket rasmi" width="144" height="96" ${tour ? '' : 'hidden'}>
           <label>${tour ? 'Rasmni almashtirish' : 'Turpaket rasmi'}

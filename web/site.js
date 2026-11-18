@@ -4,6 +4,7 @@ if (filters.length) {
   const cards = Array.from(document.querySelectorAll('[data-category]'));
   const descriptions = Array.from(document.querySelectorAll('[data-category-copy]'));
   const empty = document.querySelector('[data-empty]');
+  const localeLinks = document.querySelectorAll('.language-nav a');
   const apply = (selected) => {
     for (const filter of filters) {
       if (filter.dataset.filter === selected) filter.setAttribute('aria-current', 'true');
@@ -12,6 +13,13 @@ if (filters.length) {
     for (const card of cards) card.hidden = card.dataset.category !== selected;
     for (const copy of descriptions) copy.hidden = copy.dataset.categoryCopy !== selected;
     empty.hidden = cards.some((card) => !card.hidden);
+    for (const link of localeLinks) {
+      const url = new URL(link.href);
+      if (selected === 'international') url.searchParams.set('tur', selected);
+      else url.searchParams.delete('tur');
+      url.hash = '#turpaketlar';
+      link.href = url.href;
+    }
   };
 
   for (const filter of filters) {
@@ -33,10 +41,11 @@ const bookingForm = document.querySelector('[data-booking-form]');
 if (bookingForm) {
   const count = bookingForm.elements.namedItem('people');
   const total = bookingForm.querySelector('[data-total]');
+  const separator = { uz: '\u00A0', en: ',', de: '.' }[document.documentElement.lang] ?? '\u00A0';
   const update = () => {
     const people = count.valueAsNumber;
     total.textContent = Number.isInteger(people) && people >= 1 && people <= 20
-      ? `${String(Number(bookingForm.dataset.price) * people).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0')} so‘m`
+      ? `${String(Number(bookingForm.dataset.price) * people).replace(/\B(?=(\d{3})+(?!\d))/g, separator)} ${bookingForm.dataset.currency}`
       : '—';
   };
   count.addEventListener('input', update);
@@ -71,16 +80,16 @@ for (const trigger of document.querySelectorAll('[data-copy]')) {
   trigger.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(target.textContent.trim());
-      label.textContent = 'Nusxalandi';
-      trigger.setAttribute('aria-label', 'Bron kodi nusxalandi');
+      label.textContent = trigger.dataset.copied;
+      trigger.setAttribute('aria-label', trigger.dataset.copied);
     } catch {
       const selection = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(target);
       selection.removeAllRanges();
       selection.addRange(range);
-      label.textContent = 'Kod belgilandi';
-      trigger.setAttribute('aria-label', 'Bron kodi belgilandi');
+      label.textContent = trigger.dataset.selected;
+      trigger.setAttribute('aria-label', trigger.dataset.selected);
     }
   });
 }
