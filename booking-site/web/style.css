@@ -342,3 +342,18 @@ textarea { resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }
+
+.booking-notice:has(a:not([hidden])) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  background: #e4f0e5;
+  color: #21553e;
+  padding: 9px 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-weight: 750;
+}
+.booking-notice .button { min-height: 38px; }

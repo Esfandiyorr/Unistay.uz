@@ -90,3 +90,36 @@ if (formError) {
   formError.tabIndex = -1;
   formError.focus();
 }
+
+const bookingNotice = document.querySelector('[data-booking-notice]');
+if (bookingNotice) {
+  const inbox = document.querySelector('[data-booking-inbox]');
+  let latest;
+  let hasNew = false;
+  let busy = false;
+
+  const checkBookings = async () => {
+    if (document.hidden || busy) return;
+    busy = true;
+    try {
+      const response = await fetch('/admin/bronlar/bildirishnoma', { cache: 'no-store' });
+      if (!response.ok) return;
+      const counts = await response.json();
+      if (latest !== undefined && counts.latest > latest) hasNew = true;
+      latest = Math.max(latest ?? 0, counts.latest);
+
+      const pending = counts.pending ? `${counts.pending} ta bron tasdiq kutmoqda.` : '';
+      const message = [hasNew ? 'Yangi bron keldi!' : '', pending].filter(Boolean).join(' ');
+      if (bookingNotice.textContent !== message) bookingNotice.textContent = message;
+      inbox.hidden = !message;
+    } catch {
+      // Keep the current notice during a temporary connection interruption.
+    } finally {
+      busy = false;
+    }
+  };
+
+  checkBookings();
+  window.setInterval(checkBookings, 12000);
+  document.addEventListener('visibilitychange', checkBookings);
+}

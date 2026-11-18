@@ -12,6 +12,10 @@ function adminShell(title, active, body, { showNew = false, notice } = {}) {
       <nav class="admin-nav" aria-label="Admin panel bo‘limlari">
         ${Object.entries(sections).map(([key, label]) => `<a href="/admin?bolim=${key}" ${active === key ? 'aria-current="page"' : ''}>${label}</a>`).join('')}
       </nav>
+      <div class="booking-notice">
+        <p data-booking-notice role="status"></p>
+        <a class="button button--outline" data-booking-inbox href="/admin?bolim=bronlar" hidden>Bronlarni ko‘rish ${icon('arrow')}</a>
+      </div>
       ${notice ? `<p class="notice" role="status">${icon('check')} ${escapeHtml(notice)}</p>` : ''}
       ${body}
     </section>
