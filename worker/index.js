@@ -308,7 +308,10 @@ async function handle(request, env) {
 
   let form;
   if (method === 'POST') {
-    if (request.headers.get('Origin') !== url.origin) {
+    const origin = request.headers.get('Origin');
+    // Our referrer policy can omit the origin of a same-origin browser form.
+    const sameOriginForm = origin === 'null' && request.headers.get('Sec-Fetch-Site') === 'same-origin';
+    if (origin !== url.origin && !sameOriginForm) {
       return html(infoPage('So‘rov rad etildi', 'Formani Unistay sahifasidan qayta yuboring.'), 403);
     }
     const adminUpload = path.startsWith('/admin/turlar/');
