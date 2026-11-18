@@ -1,0 +1,92 @@
+const filters = Array.from(document.querySelectorAll('[data-filter]'));
+
+if (filters.length) {
+  const cards = Array.from(document.querySelectorAll('[data-category]'));
+  const descriptions = Array.from(document.querySelectorAll('[data-category-copy]'));
+  const empty = document.querySelector('[data-empty]');
+  const apply = (selected) => {
+    for (const filter of filters) {
+      if (filter.dataset.filter === selected) filter.setAttribute('aria-current', 'true');
+      else filter.removeAttribute('aria-current');
+    }
+    for (const card of cards) card.hidden = card.dataset.category !== selected;
+    for (const copy of descriptions) copy.hidden = copy.dataset.categoryCopy !== selected;
+    empty.hidden = cards.some((card) => !card.hidden);
+  };
+
+  for (const filter of filters) {
+    filter.addEventListener('click', (event) => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      event.preventDefault();
+      if (filter.getAttribute('aria-current')) return;
+      apply(filter.dataset.filter);
+      window.history.pushState(null, '', filter.href);
+    });
+  }
+  window.addEventListener('popstate', () => {
+    const category = new URLSearchParams(window.location.search).get('tur');
+    apply(category === 'international' ? 'international' : 'domestic');
+  });
+}
+
+const bookingForm = document.querySelector('[data-booking-form]');
+if (bookingForm) {
+  const count = bookingForm.elements.namedItem('people');
+  const total = bookingForm.querySelector('[data-total]');
+  const update = () => {
+    const people = count.valueAsNumber;
+    total.textContent = Number.isInteger(people) && people >= 1 && people <= 20
+      ? `${String(Number(bookingForm.dataset.price) * people).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0')} so‘m`
+      : '—';
+  };
+  count.addEventListener('input', update);
+  update();
+}
+
+const photoForm = document.querySelector('[data-photo-form]');
+if (photoForm) {
+  const photo = photoForm.elements.namedItem('photo');
+  const preview = photoForm.querySelector('[data-photo-preview]');
+  const original = preview.getAttribute('src');
+  const wasHidden = preview.hidden;
+  let objectUrl;
+  photo.addEventListener('change', () => {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    const selected = photo.files[0];
+    if (selected) {
+      objectUrl = URL.createObjectURL(selected);
+      preview.src = objectUrl;
+      preview.hidden = false;
+    } else {
+      preview.src = original;
+      preview.hidden = wasHidden;
+    }
+  });
+}
+
+for (const trigger of document.querySelectorAll('[data-copy]')) {
+  const target = document.getElementById(trigger.dataset.copy);
+  const label = trigger.querySelector('span');
+  if (!target || !label) continue;
+  trigger.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(target.textContent.trim());
+      label.textContent = 'Nusxalandi';
+      trigger.setAttribute('aria-label', 'Bron kodi nusxalandi');
+    } catch {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      label.textContent = 'Kod belgilandi';
+      trigger.setAttribute('aria-label', 'Bron kodi belgilandi');
+    }
+  });
+}
+
+const formError = document.querySelector('form [role=alert]');
+if (formError) {
+  formError.tabIndex = -1;
+  formError.focus();
+}
