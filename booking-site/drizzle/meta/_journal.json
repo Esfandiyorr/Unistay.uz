@@ -8,6 +8,13 @@
       "when": 1795021683889,
       "tag": "0000_booking_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795027281423,
+      "tag": "0001_localize_tours",
+      "breakpoints": true
     }
   ]
 }

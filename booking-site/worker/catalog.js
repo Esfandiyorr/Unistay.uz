@@ -1,4 +1,4 @@
-const sampleTours = [
+export const sampleTours = [
   {
     id: 'boysun', title: 'Boysun tog‘lari', category: 'domestic', location: 'Boysun',
     days: 2, price: 790000, image: '/assets/boysun.webp',

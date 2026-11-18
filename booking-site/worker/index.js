@@ -1,3 +1,5 @@
+import { languageFor, localizedPath } from './i18n.js';
+import { bookingTitle, localizeTour, tourTextLimits, translatedTourFields } from './tour-text.js';
 import { assets } from 'unistay:assets';
 import { ensureCatalog } from './catalog.js';
 import { adminBookings, adminPayment, adminTourForm, adminTours } from './admin-views.js';
@@ -74,8 +76,8 @@ async function mediaResponse(request, env, pathname) {
   });
 }
 
-function notFound(message = 'Bu sahifa topilmadi.') {
-  return html(infoPage('Sahifa topilmadi', message), 404);
+function notFound(message = 'Bu sahifa topilmadi.', language = 'uz') {
+  return html(infoPage('Sahifa topilmadi', message, { language }), 404);
 }
 
 async function paymentSettings(db) {
@@ -87,8 +89,8 @@ async function paymentSettings(db) {
 
 async function showTour(db, id, options = {}) {
   const tour = await db.prepare('SELECT * FROM tours WHERE id = ? AND published = 1').bind(id).first();
-  if (!tour) return notFound('Bu turpaket katalogda mavjud emas.');
-  return html(tourDetail(tour, {
+  if (!tour) return notFound('Bu turpaket katalogda mavjud emas.', options.language);
+  return html(tourDetail(localizeTour(tour, options.language ?? 'uz'), {
     today: today(),
     code: codeForBooking(),
     payment: !tour.sample && await paymentSettings(db),
@@ -99,12 +101,12 @@ async function showTour(db, id, options = {}) {
 async function findBooking(db, code) {
   if (!CODE_RE.test(code)) return null;
   return db.prepare(`
-    SELECT code, tour_title, date, people, total, sample, status, paid
+    SELECT code, tour_id, tour_title, tour_translations, date, people, total, sample, status, paid
     FROM bookings WHERE code = ?
   `).bind(code).first();
 }
 
-async function saveBooking(db, id, form) {
+async function saveBooking(db, id, form, language) {
   const code = clean(form, 'code', 26).toUpperCase();
   const values = {
     date: clean(form, 'date', 10),
@@ -113,7 +115,7 @@ async function saveBooking(db, id, form) {
     phone: clean(form, 'phone', 32),
   };
   const errors = (error, status = 400) => showTour(db, id, {
-    values, error, status, code: CODE_RE.test(code) ? code : codeForBooking(),
+    values, error, status, language, code: CODE_RE.test(code) ? code : codeForBooking(),
   });
   const phoneDigits = values.phone.replace(/\D/g, '').length;
 
@@ -132,8 +134,10 @@ async function saveBooking(db, id, form) {
   }
   const people = Number(values.people);
   const result = await db.prepare(`
-    INSERT INTO bookings (code, tour_id, tour_title, date, people, customer, phone, total, sample, created_at)
-    SELECT ?, id, title, ?, ?, ?, ?, price * ?, sample, ?
+    INSERT INTO bookings (code, tour_id, tour_title, tour_translations, date, people, customer, phone, total, sample, created_at)
+    SELECT ?, id, title,
+      json_object('en', json_extract(translations, '$.en.title'), 'de', json_extract(translations, '$.de.title')),
+      ?, ?, ?, ?, price * ?, sample, ?
     FROM tours
     WHERE id = ? AND published = 1 AND price = ? AND sample = ?
     ON CONFLICT(code) DO NOTHING
@@ -147,7 +151,7 @@ async function saveBooking(db, id, form) {
     const prior = await db.prepare('SELECT 1 FROM bookings WHERE code = ? AND tour_id = ?').bind(code, id).first();
     if (!prior) return errors('Turpaket yangilandi. Narxni tekshirib, qayta yuboring.', 409);
   }
-  return redirect(`/bron/${code}`);
+  return redirect(localizedPath(`/bron/${code}`, language));
 }
 
 function adminAllowed(request, env) {
@@ -182,10 +186,22 @@ async function saveTour(env, id, form) {
     sample: form.has('sample'),
     published: form.has('published'),
   };
-  const invalid = (error) => html(adminTourForm({ tour, values, error }), 400);
-  const limits = { title: 100, location: 100, summary: 240, itinerary: 2500, included: 1000 };
-  if (Object.entries(limits).some(([key, limit]) => !values[key] || values[key].length > limit)) {
+
+  const limits = Object.entries(tourTextLimits);
+  const translations = Object.fromEntries(['en', 'de'].map((language) => {
+    const existing = translatedTourFields(tour, language);
+    const fields = limits.map(([key, limit]) => {
+      const name = `${language}_${key}`;
+      return [key, form.has(name) ? clean(form, name, limit) : existing[key] ?? ''];
+    });
+    return [language, Object.fromEntries(fields)];
+  }));
+  const invalid = (error) => html(adminTourForm({ tour, values, translations, error }), 400);
+  if (limits.some(([key, limit]) => !values[key] || values[key].length > limit)) {
     return invalid('Nom, manzil, tavsif, dastur va xizmatlar maydonlarini to‘ldiring.');
+  }
+  if (Object.values(translations).some((content) => limits.some(([key, limit]) => content[key].length > limit))) {
+    return invalid('Tarjima maydonlaridagi matnni qisqartiring.');
   }
   if (!inEnum(categoryNames, values.category)) return invalid('Turpaket bo‘limini tanlang.');
   if (!inRange(values.days, 1, 30)) return invalid('Davomiylik 1 dan 30 kungacha bo‘lishi kerak.');
@@ -207,18 +223,18 @@ async function saveTour(env, id, form) {
 
   const fields = [
     values.title, values.category, values.location, Number(values.days), Number(values.price),
-    values.summary, values.itinerary, values.included, Number(values.sample), Number(values.published),
+    values.summary, values.itinerary, values.included, Number(values.sample), Number(values.published), JSON.stringify(translations),
   ];
   if (isNew) {
     await db.prepare(`
-      INSERT INTO tours (title, category, location, days, price, summary, itinerary, included, sample, published, image, id, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tours (title, category, location, days, price, summary, itinerary, included, sample, published, translations, image, id, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(...fields, image, crypto.randomUUID(), new Date().toISOString()).run();
   } else {
     await db.prepare(`
       UPDATE tours
       SET title = ?, category = ?, location = ?, days = ?, price = ?, summary = ?, itinerary = ?, included = ?,
-        sample = ?, published = ?, image = coalesce(?, image)
+        sample = ?, published = ?, translations = ?, image = coalesce(?, image)
       WHERE id = ?
     `).bind(...fields, image, id).run();
   }
@@ -301,6 +317,7 @@ async function handle(request, env) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/$/, '') || '/';
   const method = request.method;
+  const language = languageFor(url);
   if (!['GET', 'HEAD', 'POST'].includes(method)) return reply('Method not allowed', 405, { Allow: 'GET, HEAD, POST' });
 
   if (method !== 'POST' && path.startsWith('/assets/')) return assetResponse(request, path);
@@ -312,19 +329,19 @@ async function handle(request, env) {
     // Our referrer policy can omit the origin of a same-origin browser form.
     const sameOriginForm = origin === 'null' && request.headers.get('Sec-Fetch-Site') === 'same-origin';
     if (origin !== url.origin && !sameOriginForm) {
-      return html(infoPage('So‘rov rad etildi', 'Formani Unistay sahifasidan qayta yuboring.'), 403);
+      return html(infoPage('So‘rov rad etildi', 'Formani Unistay sahifasidan qayta yuboring.', { language }), 403);
     }
     const adminUpload = path.startsWith('/admin/turlar/');
     if ((path === '/admin' || path.startsWith('/admin/')) && !adminAllowed(request, env)) {
       return adminRoute(request, env, url);
     }
     if (Number(request.headers.get('content-length')) > (adminUpload ? MAX_PHOTO + MAX_FORM : MAX_FORM)) {
-      return html(infoPage('Fayl juda katta', adminUpload ? 'Rasmni 5 MB gacha kichraytirib qayta yuklang.' : 'Formani tekshirib, qayta yuboring.'), 413);
+      return html(infoPage('Fayl juda katta', adminUpload ? 'Rasmni 5 MB gacha kichraytirib qayta yuklang.' : 'Formani tekshirib, qayta yuboring.', { language: adminUpload ? 'uz' : language }), 413);
     }
     try {
       form = await request.formData();
     } catch {
-      return html(infoPage('Forma o‘qilmadi', 'Ma’lumotlarni qayta yuboring.'), 400);
+      return html(infoPage('Forma o‘qilmadi', 'Ma’lumotlarni qayta yuboring.', { language }), 400);
     }
   }
 
@@ -336,30 +353,31 @@ async function handle(request, env) {
     await ensureCatalog(db);
     const category = url.searchParams.get('tur') === 'international' ? 'international' : 'domestic';
     const tours = await list(db.prepare('SELECT * FROM tours WHERE published = 1 ORDER BY sort_order, created_at DESC'));
-    return html(home(tours, category));
+    return html(home(tours.map((tour) => localizeTour(tour, language)), category, language));
   }
 
   if (path === '/bron-holati') {
-    if (!form) return html(lookupPage());
+    if (!form) return html(lookupPage({ language }));
     const code = clean(form, 'code', 32).toUpperCase();
-    if (await findBooking(db, code)) return redirect(`/bron/${code}`);
-    return html(lookupPage({ code, error: 'Bu kod bilan bron topilmadi. Kodni tekshirib qayta kiriting.' }), 404);
+    if (await findBooking(db, code)) return redirect(localizedPath(`/bron/${code}`, language));
+    return html(lookupPage({ code, language, error: 'Bu kod bilan bron topilmadi. Kodni tekshirib qayta kiriting.' }), 404);
   }
 
   const itinerary = path.match(/^\/turlar\/([a-z0-9-]{1,64})(\/bron)?$/);
   if (itinerary) {
     await ensureCatalog(db);
-    if (!form && !itinerary[2]) return showTour(db, itinerary[1]);
-    if (form && itinerary[2]) return saveBooking(db, itinerary[1], form);
+    if (!form && !itinerary[2]) return showTour(db, itinerary[1], { language });
+    if (form && itinerary[2]) return saveBooking(db, itinerary[1], form, language);
   }
 
   if (path.startsWith('/bron/') && !form) {
     const booking = await findBooking(db, path.slice('/bron/'.length));
     return booking
-      ? html(bookingResult(booking, !booking.sample && !booking.paid && booking.status !== 'cancelled' && await paymentSettings(db)))
-      : notFound('Bu bron kodi topilmadi.');
+      ? html(bookingResult({ ...booking, tour_title: bookingTitle(booking, language) },
+        !booking.sample && !booking.paid && booking.status !== 'cancelled' && await paymentSettings(db), language))
+      : notFound('Bu bron kodi topilmadi.', language);
   }
-  return notFound();
+  return notFound(undefined, language);
 }
 
 export default {
@@ -369,7 +387,7 @@ export default {
       return request.method === 'HEAD' ? new Response(null, response) : response;
     } catch (error) {
       console.error('Unistay request failed', error instanceof Error ? error.message : 'Unknown error');
-      return html(infoPage('Vaqtinchalik xatolik', 'Bir ozdan so‘ng qayta urinib ko‘ring.'), 500);
+      return html(infoPage('Vaqtinchalik xatolik', 'Bir ozdan so‘ng qayta urinib ko‘ring.', { language: languageFor(new URL(request.url)) }), 500);
     }
   },
 };
