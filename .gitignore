@@ -5,3 +5,6 @@ dist/
 .env*
 .dev.vars*
 outputs/
+
+.vercel/
+!.env.example

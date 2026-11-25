@@ -11,9 +11,12 @@
     "dev": "node scripts/dev.mjs",
     "git:sync": "node scripts/configure-git-sync.mjs",
     "db:generate": "drizzle-kit generate",
-    "db:local": "wrangler d1 migrations apply DB --config dist/server/wrangler.json --local --persist-to .wrangler/state"
+    "db:local": "wrangler d1 migrations apply DB --config dist/server/wrangler.json --local --persist-to .wrangler/state",
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "dev:vercel": "node scripts/dev-vercel.mjs"
   },
   "devDependencies": {
+    "@libsql/client": "0.18.0",
     "drizzle-kit": "0.31.10",
     "drizzle-orm": "0.45.2",
     "esbuild": "0.27.4",
