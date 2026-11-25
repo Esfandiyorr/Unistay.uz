@@ -2,6 +2,7 @@ import { languageFor, localizedPath } from './i18n.js';
 import { bookingTitle, localizeTour, tourTextLimits, translatedTourFields } from './tour-text.js';
 import { assets } from 'unistay:assets';
 import { ensureCatalog } from './catalog.js';
+import { cloudflareAdminAllowed } from './admin-access.js';
 import { adminBookings, adminPayment, adminTourForm, adminTours } from './admin-views.js';
 import { bookingResult, categoryNames, home, infoPage, lookupPage, statusNames, tourDetail } from './views.js';
 
@@ -154,11 +155,15 @@ async function saveBooking(db, id, form, language) {
   return redirect(localizedPath(`/bron/${code}`, language));
 }
 
-function adminAllowed(request, env) {
-  if (!request.headers.get('oai-authenticated-user-id')) return false;
+async function adminAllowed(request, env) {
   const allowed = String(env.UNISTAY_ADMIN_EMAIL ?? '').trim().toLowerCase();
+  if (!allowed) return false;
+  if (env.UNISTAY_ADMIN_AUTH === 'cloudflare-access') {
+    return cloudflareAdminAllowed(request, env, allowed);
+  }
+  if (!request.headers.get('oai-authenticated-user-id')) return false;
   const actual = request.headers.get('oai-authenticated-user-email')?.trim().toLowerCase();
-  return Boolean(allowed && actual === allowed);
+  return actual === allowed;
 }
 
 function photoExtension(bytes) {
@@ -258,8 +263,11 @@ function pageNumber(value) {
   return value && inRange(value, 1, 1000000) ? Number(value) : 1;
 }
 
-async function adminRoute(request, env, url, form) {
-  if (!adminAllowed(request, env)) {
+async function adminRoute(request, env, url, form, authorized) {
+  if (!authorized) {
+    if (env.UNISTAY_ADMIN_AUTH === 'cloudflare-access') {
+      return html(infoPage('Admin panel', 'Cloudflare Access orqali administrator hisobingiz bilan kiring.', { admin: true }), 403);
+    }
     const signedIn = Boolean(request.headers.get('oai-authenticated-user-id'));
     return html(infoPage(
       'Admin panel', signedIn ? 'Bu ChatGPT hisobida admin panelga kirish huquqi yo‘q.' : 'Turpaketlarni boshqarish uchun ChatGPT hisobingiz orqali kiring.',
@@ -319,11 +327,13 @@ async function handle(request, env) {
   const method = request.method;
   const language = languageFor(url);
   if (!['GET', 'HEAD', 'POST'].includes(method)) return reply('Method not allowed', 405, { Allow: 'GET, HEAD, POST' });
+  const isAdmin = path === '/admin' || path.startsWith('/admin/');
 
   if (method !== 'POST' && path.startsWith('/assets/')) return assetResponse(request, path);
   if (method !== 'POST' && path.startsWith('/media/')) return mediaResponse(request, env, path);
 
   let form;
+  let authorized;
   if (method === 'POST') {
     const origin = request.headers.get('Origin');
     // Our referrer policy can omit the origin of a same-origin browser form.
@@ -332,8 +342,9 @@ async function handle(request, env) {
       return html(infoPage('So‘rov rad etildi', 'Formani Unistay sahifasidan qayta yuboring.', { language }), 403);
     }
     const adminUpload = path.startsWith('/admin/turlar/');
-    if ((path === '/admin' || path.startsWith('/admin/')) && !adminAllowed(request, env)) {
-      return adminRoute(request, env, url);
+    if (isAdmin) {
+      authorized = await adminAllowed(request, env);
+      if (!authorized) return adminRoute(request, env, url, undefined, false);
     }
     if (Number(request.headers.get('content-length')) > (adminUpload ? MAX_PHOTO + MAX_FORM : MAX_FORM)) {
       return html(infoPage('Fayl juda katta', adminUpload ? 'Rasmni 5 MB gacha kichraytirib qayta yuklang.' : 'Formani tekshirib, qayta yuboring.', { language: adminUpload ? 'uz' : language }), 413);
@@ -346,7 +357,7 @@ async function handle(request, env) {
   }
 
   url.pathname = path;
-  if (path === '/admin' || path.startsWith('/admin/')) return adminRoute(request, env, url, form);
+  if (isAdmin) return adminRoute(request, env, url, form, authorized ?? await adminAllowed(request, env));
 
   const db = env.DB;
   if (path === '/' && !form) {
