@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "unistay",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": "dist/cloudflare/public" },
+  "vars": { "ADMIN_AUTH": "google" },
+  "keep_vars": true,
+  "d1_databases": [
+    { "binding": "DB", "database_name": "unistay-db", "migrations_dir": "drizzle" }
+  ],
+  "r2_buckets": [
+    { "binding": "BUCKET", "bucket_name": "unistay-media" }
+  ],
+  "observability": { "enabled": true }
+}

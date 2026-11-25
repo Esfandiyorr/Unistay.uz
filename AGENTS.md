@@ -7,3 +7,7 @@ The live booking site is published on ChatGPT Sites. Keep its source and `Esfand
 3. Before saving the Sites version, verify that both remotes have the commit used to build the site. If one push failed, retry that destination with the same commit. Use the normal Sites save and deployment steps.
 
 Store credentials, runtime data, and booking records in their existing protected locations. Commit source files and migration definitions.
+
+## Cloudflare Workers deployment
+
+`wrangler.json` deploys the same Worker to Cloudflare through Workers Builds (`npm run deploy:cloudflare`), with D1 `unistay-db`, R2 `unistay-media` and `web/` served as static assets. It sets `ADMIN_AUTH = "google"`, which makes `worker/google-admin.js` strip incoming `oai-authenticated-*` headers and sign the admin in with Google (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `UNISTAY_ADMIN_EMAIL` secrets). Never trust `oai-*` headers when `ADMIN_AUTH` is set. Keep `npm run build` (Sites) and `npm run build:cloudflare` both working.

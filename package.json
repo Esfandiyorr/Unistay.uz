@@ -8,6 +8,8 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
+    "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
     "dev": "node scripts/dev.mjs",
     "git:sync": "node scripts/configure-git-sync.mjs",
     "db:generate": "drizzle-kit generate",

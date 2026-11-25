@@ -2,6 +2,7 @@ import { languageFor, localizedPath } from './i18n.js';
 import { bookingTitle, localizeTour, tourTextLimits, translatedTourFields } from './tour-text.js';
 import { assets } from 'unistay:assets';
 import { ensureCatalog } from './catalog.js';
+import { googleAdminGate, withSignOut } from './google-admin.js';
 import { adminBookings, adminPayment, adminTourForm, adminTours } from './admin-views.js';
 import { bookingResult, categoryNames, home, infoPage, lookupPage, statusNames, tourDetail } from './views.js';
 
@@ -380,10 +381,20 @@ async function handle(request, env) {
   return notFound(undefined, language);
 }
 
+// ChatGPT Sites authenticates the admin itself. Other hosts (Cloudflare, see wrangler.jsonc)
+// set ADMIN_AUTH = "google" and sign the admin in with Google instead.
+async function respond(request, env) {
+  if (env.ADMIN_AUTH !== 'google') return handle(request, env);
+  const gate = await googleAdminGate(request, env);
+  if (gate.response) return gate.response;
+  const response = await handle(gate.request, gate.env);
+  return gate.admin ? withSignOut(response) : response;
+}
+
 export default {
   async fetch(request, env) {
     try {
-      const response = await handle(request, env);
+      const response = await respond(request, env);
       return request.method === 'HEAD' ? new Response(null, response) : response;
     } catch (error) {
       console.error('Unistay request failed', error instanceof Error ? error.message : 'Unknown error');
