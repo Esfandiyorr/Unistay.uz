@@ -2,6 +2,8 @@
 
 Surxondaryo va xorijiy turpaketlar katalogi. Mijoz safar sanasi hamda kishilar sonini tanlaydi, bron so‘rovini yuboradi va kod orqali holatini tekshiradi. Admin turpaketlar, rasmlar, to‘lov rekvizitlari va bronlarni boshqaradi.
 
+[Unistay bronlash saytini ochish](https://unistay-turlar.sturdyfig15.chatgpt.site)
+
 ## Boshqarish
 
 - `/admin` sahifasiga sayt egasining ChatGPT hisobi bilan kiring.
@@ -25,3 +27,7 @@ npm run dev
 Yig‘ilgan Worker `dist/server/index.js` da, D1 migratsiyalari `drizzle/` da. Hosting `DB` (D1) va `BUCKET` (R2) ulanishlarini hamda egasining elektron pochtasini saqlaydigan `UNISTAY_ADMIN_EMAIL` server qiymatini taqdim etadi. Admin identifikatsiyasi uchun ishonchli Sites dispatch qatlami `oai-authenticated-user-id` va `oai-authenticated-user-email` sarlavhalarini o‘zi biriktiradi. Boshqa hostingga ko‘chirishda o‘sha hosting uchun autentifikatsiya qatlamini moslang.
 
 Sayt brauzerdan to‘lov kartasi ma’lumotlarini olmaydi. Bank o‘tkazmasini admin qo‘lda tekshiradi. GitHub repozitoriysi kodni saqlaydi, sayt esa serverda ishlaydigan Worker’ni talab qiladi.
+
+## Kodni GitHub’ga sinxronlash
+
+ChatGPT Sites manba repozitoriysini ochgandan keyin `npm run git:sync` ni ishga tushiring. Shu ish nusxasidan `git push origin main` kodni Sites manbasiga va `Esfandiyorr/Unistay.uz` repozitoriysiga bir xil commit bilan yuboradi. Ikki repozitoriyda ham commit saqlanganini tekshirib, o‘sha commit asosida Sites’da yangi versiyani nashr qiling.

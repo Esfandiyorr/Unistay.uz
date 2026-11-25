@@ -9,6 +9,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev.mjs",
+    "git:sync": "node scripts/configure-git-sync.mjs",
     "db:generate": "drizzle-kit generate",
     "db:local": "wrangler d1 migrations apply DB --config dist/server/wrangler.json --local --persist-to .wrangler/state"
   },
