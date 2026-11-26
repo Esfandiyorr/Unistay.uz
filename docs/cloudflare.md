@@ -27,7 +27,9 @@ npx wrangler deploy --config dist/server/wrangler.cloudflare.json
 Worker sozlamalariga `UNISTAY_ACCESS_TEAM`, `UNISTAY_ACCESS_AUD` va
 `UNISTAY_ADMIN_EMAIL` qiymatlarini kiriting. Worker Access imzosi,
 auditoriyasi, emitenti, amal qilish muddati va administrator emailini tekshiradi.
-Build konfiguratsiyasi `workers.dev` va preview manzillarini o‘chiradi.
+Asosiy `workers.dev` manzili domen ulanishi tugaguncha sinov uchun yoqilgan.
+Unistay domeni tekshirilgach, uni o‘chirish uchun build sozlamalariga
+`UNISTAY_WORKERS_DEV=false` qiymatini kiriting. Preview manzillari o‘chirilgan.
 Access siyosati va Worker sozlamalari tayyor bo‘lgach, alohida sinov
 subdomenini Worker’ga ulang va Access ilovasiga shu subdomenning admin
 yo‘llarini ham kiriting.

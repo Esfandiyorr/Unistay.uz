@@ -9,7 +9,7 @@ await import('./build.mjs');
 
 const config = JSON.parse(await readFile('dist/server/wrangler.json', 'utf8'));
 config.name = 'unistay-uz';
-config.workers_dev = false;
+config.workers_dev = process.env.UNISTAY_WORKERS_DEV !== 'false';
 config.preview_urls = false;
 config.keep_vars = true;
 config.vars = { UNISTAY_ADMIN_AUTH: 'cloudflare-access' };

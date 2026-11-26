@@ -1,22 +1,19 @@
 const filters = Array.from(document.querySelectorAll('[data-filter]'));
 
 if (filters.length) {
-  const cards = Array.from(document.querySelectorAll('[data-category]'));
-  const descriptions = Array.from(document.querySelectorAll('[data-category-copy]'));
-  const empty = document.querySelector('[data-empty]');
+  const panels = document.querySelectorAll('[data-category-panel]');
+  const categories = new Set(filters.map((filter) => filter.dataset.filter));
   const localeLinks = document.querySelectorAll('.language-nav a');
   const apply = (selected) => {
     for (const filter of filters) {
       if (filter.dataset.filter === selected) filter.setAttribute('aria-current', 'true');
       else filter.removeAttribute('aria-current');
     }
-    for (const card of cards) card.hidden = card.dataset.category !== selected;
-    for (const copy of descriptions) copy.hidden = copy.dataset.categoryCopy !== selected;
-    empty.hidden = cards.some((card) => !card.hidden);
+    for (const panel of panels) panel.hidden = panel.dataset.categoryPanel !== selected;
     for (const link of localeLinks) {
       const url = new URL(link.href);
-      if (selected === 'international') url.searchParams.set('tur', selected);
-      else url.searchParams.delete('tur');
+      if (selected === 'domestic') url.searchParams.delete('tur');
+      else url.searchParams.set('tur', selected);
       url.hash = '#turpaketlar';
       link.href = url.href;
     }
@@ -33,7 +30,7 @@ if (filters.length) {
   }
   window.addEventListener('popstate', () => {
     const category = new URLSearchParams(window.location.search).get('tur');
-    apply(category === 'international' ? 'international' : 'domestic');
+    apply(categories.has(category) ? category : 'domestic');
   });
 }
 

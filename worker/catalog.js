@@ -1,3 +1,5 @@
+import { surxondaryoTours } from './surxondaryo-tours.js';
+
 export const sampleTours = [
   {
     id: 'boysun', title: 'Boysun tog‘lari', category: 'domestic', location: 'Boysun',
@@ -36,21 +38,28 @@ export const sampleTours = [
   },
 ];
 
+const expansionKey = 'catalog_surxondaryo_expanded';
+
 export async function ensureCatalog(db) {
-  const ready = await db.prepare("SELECT 1 FROM site_settings WHERE key = 'catalog_seeded'").first();
-  if (ready) return;
+  const { results } = await db.prepare("SELECT key FROM site_settings WHERE key IN ('catalog_seeded', ?)").bind(expansionKey).all();
+  if (results.some(({ key }) => key === expansionKey)) return;
+  const originalTours = results.some(({ key }) => key === 'catalog_seeded') ? [] : sampleTours;
+  const additionalTours = surxondaryoTours.map((tour, index) => ({
+    ...tour, category: 'domestic', sortOrder: sampleTours.length + index + 1,
+  }));
   const createdAt = new Date().toISOString();
-  const inserts = sampleTours.map((tour, order) => db.prepare(`
+  const inserts = [...originalTours, ...additionalTours].map((tour, index) => db.prepare(`
     INSERT INTO tours
-      (id, title, category, location, days, price, summary, itinerary, included, image, sample, published, sort_order, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+      (id, title, category, location, days, price, summary, itinerary, included, image, sample, published, sort_order, created_at, translations)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?)
     ON CONFLICT(id) DO NOTHING
   `).bind(
     tour.id, tour.title, tour.category, tour.location, tour.days, tour.price, tour.summary,
-    tour.itinerary, tour.included, tour.image, order + 1, createdAt,
+    tour.itinerary, tour.included, tour.image, tour.sortOrder ?? index + 1, createdAt,
+    tour.translations ? JSON.stringify(tour.translations) : null,
   ));
   await db.batch([
     ...inserts,
-    db.prepare("INSERT INTO site_settings (key, value) VALUES ('catalog_seeded', '1') ON CONFLICT(key) DO NOTHING"),
+    db.prepare("INSERT INTO site_settings (key, value) VALUES ('catalog_seeded', '1'), (?, '1') ON CONFLICT(key) DO NOTHING").bind(expansionKey),
   ]);
 }

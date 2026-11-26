@@ -4,7 +4,7 @@ import { assets } from 'unistay:assets';
 import { ensureCatalog } from './catalog.js';
 import { cloudflareAdminAllowed } from './admin-access.js';
 import { adminBookings, adminPayment, adminTourForm, adminTours } from './admin-views.js';
-import { bookingResult, categoryNames, home, infoPage, lookupPage, statusNames, tourDetail } from './views.js';
+import { bookingResult, catalogCategories, categoryNames, home, infoPage, lookupPage, placesCatalog, statusNames, tourDetail } from './views.js';
 
 const MAX_PHOTO = 5 * 1024 * 1024;
 const MAX_FORM = 48 * 1024;
@@ -362,10 +362,13 @@ async function handle(request, env) {
   const db = env.DB;
   if (path === '/' && !form) {
     await ensureCatalog(db);
-    const category = url.searchParams.get('tur') === 'international' ? 'international' : 'domestic';
+    const requested = url.searchParams.get('tur');
+    const category = inEnum(catalogCategories, requested) ? requested : 'domestic';
     const tours = await list(db.prepare('SELECT * FROM tours WHERE published = 1 ORDER BY sort_order, created_at DESC'));
     return html(home(tours.map((tour) => localizeTour(tour, language)), category, language));
   }
+
+  if (path === '/joylar' && !form) return html(placesCatalog(language));
 
   if (path === '/bron-holati') {
     if (!form) return html(lookupPage({ language }));

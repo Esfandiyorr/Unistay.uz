@@ -1,6 +1,8 @@
-import { duration, languages, localizedPath, translate } from './i18n.js';
+import { duration, languages, localizedPath, placesLanguages, translate } from './i18n.js';
+import { placeGroups } from './places.js';
 
 export const categoryNames = { domestic: 'Ichki turizm', international: 'Tashqi turizm' };
+export const catalogCategories = { ...categoryNames, guide: 'Gid xizmati' };
 export const statusNames = { pending: 'Tasdiq kutilmoqda', confirmed: 'Tasdiqlangan', cancelled: 'Bekor qilingan' };
 const months = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
 const iconPaths = {
@@ -18,6 +20,8 @@ const iconPaths = {
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 4H6a2 2 0 0 0-2 2v10"/>',
   lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
   list: '<path d="M10 6h10M10 12h10M10 18h10M4 6h1m-1 6h1m-1 6h1"/>',
+  compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>',
+  landmark: '<path d="m3 9 9-5 9 5M4 20h16M6 16V9m4 7V9m4 7V9m4 7V9M4 16h16"/>',
 };
 
 export function escapeHtml(value = '') {
@@ -46,7 +50,7 @@ const readableDate = (value, language) => {
 };
 const lines = (value) => String(value).split('\n').map((line) => line.trim()).filter(Boolean);
 const location = (tour, language) => tour.category === 'domestic' ? `${tour.location}, ${language === 'en' ? 'Surkhandarya' : 'Surxondaryo'}` : tour.location;
-const sampleBadge = (label = 'Namuna') => `<span class="tag tag--sample">${label}</span>`;
+const sampleBadge = (label) => `<span class="tag tag--sample">${label}</span>`;
 
 function brand(language) {
   const t = (text) => translate(language, text);
@@ -56,10 +60,10 @@ function brand(language) {
   </a>`;
 }
 
-export function layout(title, body, { description, admin = false, language = 'uz', current = '/' } = {}) {
+export function layout(title, body, { description, admin = false, language = 'uz', current = '/', languageChoices = languages } = {}) {
   const t = (text) => translate(language, text);
   const href = (path) => localizedPath(path, language);
-  const languageNav = Object.entries(languages).map(([key, label]) => `
+  const languageNav = Object.entries(languageChoices).map(([key, label]) => `
     <a href="${escapeHtml(localizedPath(current, key))}" lang="${key}" hreflang="${key}"
       aria-label="${label}" ${key === language ? 'aria-current="true"' : ''}>${key.toUpperCase()}</a>`).join('');
   return `<!doctype html>
@@ -71,8 +75,8 @@ export function layout(title, body, { description, admin = false, language = 'uz
   <meta name="description" content="${escapeHtml(description || t('Unistay — Surxondaryo va xorij bo‘ylab turpaketlar va bronlash xizmati.'))}">
   <title>${escapeHtml(title)}</title>
   <link rel="icon" href="/assets/unistay.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/style.css?v=languages">
-  <script src="/assets/site.js?v=languages" defer></script>
+  <link rel="stylesheet" href="/assets/style.css?v=surxondaryo">
+  <script src="/assets/site.js?v=surxondaryo" defer></script>
 </head>
 <body>
   <a href="#asosiy" class="skip-link">${t('Asosiy mazmunga o‘tish')}</a>
@@ -81,6 +85,7 @@ export function layout(title, body, { description, admin = false, language = 'uz
       ${brand(language)}
       <nav aria-label="${t('Asosiy menyu')}" class="main-nav">
         <a href="${href('/#turpaketlar')}">${t('Turpaketlar')}</a>
+        <a href="${href('/joylar')}" ${current === '/joylar' ? 'aria-current="page"' : ''}>${t('Turistik joylar')}</a>
         <a href="${href('/#bronlash')}">${t('Bronlash tartibi')}</a>
       </nav>
       <div class="header-tools">
@@ -97,6 +102,7 @@ export function layout(title, body, { description, admin = false, language = 'uz
       <div>${brand(language)}<p>${t('Surxondaryo va xorij bo‘ylab sayohatlar.')}</p></div>
       <nav aria-label="${t('Quyi menyu')}">
         <a href="${href('/#turpaketlar')}">${t('Turpaketlar')}</a>
+        <a href="${href('/joylar')}">${t('Turistik joylar')}</a>
         <a href="${href('/bron-holati')}">${t('Bron holati')}</a>
         <a href="/admin" class="footer-admin">${icon('lock')} ${t('Admin panel')}</a>
       </nav>
@@ -106,12 +112,11 @@ export function layout(title, body, { description, admin = false, language = 'uz
 </html>`;
 }
 
-function tourCard(tour, active, language) {
+function tourCard(tour, language) {
   const t = (text) => translate(language, text);
-  return `<a class="tour-card" data-category="${tour.category}" href="${localizedPath(`/turlar/${tour.id}`, language)}" ${active ? '' : 'hidden'}>
+  return `<a class="tour-card" href="${localizedPath(`/turlar/${tour.id}`, language)}">
     <div class="card-image">
       <img src="${escapeHtml(tour.image)}" alt="" width="640" height="434" loading="lazy">
-      ${tour.sample ? sampleBadge(t('Namuna')) : ''}
     </div>
     <div class="card-body">
       <div class="card-meta">
@@ -121,20 +126,62 @@ function tourCard(tour, active, language) {
       <h3>${escapeHtml(tour.title)}</h3>
       <p>${escapeHtml(tour.summary)}</p>
       <div class="card-bottom">
-        <div><strong>${money(tour.price, language)}</strong><span> / ${t('kishi')}</span></div>
+        <div>
+          ${tour.sample ? `<small class="price-label">${t('Taxminiy narx')}</small>` : ''}
+          <strong>${money(tour.price, language)}</strong><span> / ${t('kishi')}</span>
+        </div>
         <span class="card-arrow" aria-hidden="true">${icon('arrow')}</span>
       </div>
     </div>
   </a>`;
 }
 
+const guideServices = [
+  { name: 'Termiz bo‘ylab shahar sayri', hours: '3 soatgacha', icon: 'pin', price: 420000,
+    description: 'Termiz muzeyi yoki shahar markazi bo‘ylab qisqa ekskursiya.' },
+  { name: 'Tarixiy obidalar bo‘ylab gid', hours: '6 soatgacha', icon: 'landmark', price: 650000,
+    description: 'Fayoztepa, Sulton Saodat yoki Qirq qizdan tanlangan yo‘nalish.' },
+  { name: 'Tog‘ va tabiat yo‘nalishlari', hours: '8 soatgacha', icon: 'mountain', price: 780000,
+    description: 'Boysun, Darband yoki Sangardakda mahalliy gid hamrohligi.' },
+];
+
+function guideCatalog(language) {
+  const t = (text) => translate(language, text);
+  return `
+    <p class="category-copy">${t('Surxondaryoda mahalliy gid bilan shahar, obidalar va tog‘ yo‘nalishlarini kashf eting.')}</p>
+    <div class="tour-grid">
+      ${guideServices.map((service) => `<article class="guide-service card-body">
+        <div class="guide-service-meta"><span class="step-icon">${icon(service.icon)}</span><span>${icon('calendar')}${t(service.hours)}</span></div>
+        <h3>${t(service.name)}</h3>
+        <p>${t(service.description)}</p>
+        <div class="card-bottom">
+          <div><small class="price-label">${t('Taxminiy narx')}</small><strong>${money(service.price, language)}</strong><span> / ${t('guruh')}</span></div>
+        </div>
+      </article>`).join('')}
+    </div>
+    <p class="catalog-note">${t('Gid tarifi 1–6 kishilik guruh uchun. Transport va kirish chiptalari alohida to‘lanadi.')}</p>`;
+}
+
 export function home(tours, category, language = 'uz') {
   const t = (text) => translate(language, text);
-  const current = category === 'domestic' ? '/' : '/?tur=international';
-  const choices = Object.entries(categoryNames).map(([key, title]) => `
+  const current = category === 'domestic' ? '/' : `/?tur=${category}`;
+  const categoryIcons = { domestic: 'mountain', international: 'globe', guide: 'compass' };
+  const choices = Object.entries(catalogCategories).map(([key, title]) => `
     <a class="filter" data-filter="${key}" href="${escapeHtml(localizedPath(`/?tur=${key}#turpaketlar`, language))}" ${key === category ? 'aria-current="true"' : ''}>
-      ${icon(key === 'domestic' ? 'mountain' : 'globe')}${t(title)}
+      ${icon(categoryIcons[key])}${t(title)}
     </a>`).join('');
+  const tourPanels = [
+    ['domestic', 'Surxondaryoning tog‘lari, sharsharalari va tarixiy shaharlari.'],
+    ['international', 'Xorij bo‘ylab sayohat yo‘nalishlari.'],
+  ].map(([key, description]) => {
+    const matches = tours.filter((tour) => tour.category === key);
+    return `<div data-category-panel="${key}" ${key === category ? '' : 'hidden'}>
+      <p class="category-copy">${t(description)}</p>
+      <div class="tour-grid">
+        ${matches.length ? matches.map((tour) => tourCard(tour, language)).join('') : `<p class="empty">${t('Bu bo‘limda hozircha turpaketlar yo‘q.')}</p>`}
+      </div>
+    </div>`;
+  }).join('');
   const steps = [
     ['mountain', 'Turpaketni tanlang', 'Yo‘nalish, narx va safar dasturi bilan tanishing.'],
     ['calendar', 'Bron qiling', 'Safar sanasi va sayohatchilar sonini kiriting.'],
@@ -160,12 +207,8 @@ export function home(tours, category, language = 'uz') {
         </div>
         <nav class="filters" aria-label="${t('Turpaket toifasi')}">${choices}</nav>
       </div>
-      <p class="category-copy" data-category-copy="domestic" ${category === 'domestic' ? '' : 'hidden'}>${t('Surxondaryoning tog‘lari, sharsharalari va tarixiy shaharlari.')}</p>
-      <p class="category-copy" data-category-copy="international" ${category === 'international' ? '' : 'hidden'}>${t('Xorij bo‘ylab sayohat yo‘nalishlari.')}</p>
-      <div class="tour-grid">
-        ${tours.map((tour) => tourCard(tour, tour.category === category, language)).join('')}
-      </div>
-      <p class="empty" data-empty ${tours.some((tour) => tour.category === category) ? 'hidden' : ''}>${t('Bu bo‘limda hozircha turpaketlar yo‘q.')}</p>
+      ${tourPanels}
+      <div data-category-panel="guide" ${category === 'guide' ? '' : 'hidden'}>${guideCatalog(language)}</div>
     </section>
     <section class="guide wrap" id="bronlash" aria-labelledby="guide-title">
       <div class="guide-head"><p class="eyebrow"><span></span> ${t('BRONLASH')}</p><h2 id="guide-title">${t('Sayohatga uch qadam')}</h2></div>
@@ -177,6 +220,42 @@ export function home(tours, category, language = 'uz') {
       </ol>
     </section>
   `, { language, current });
+}
+
+export function placesCatalog(language) {
+  const t = (text) => translate(language, text);
+  const title = t('Turistik joylar');
+  const description = t('Surxondaryodagi tarixiy obidalar, tog‘lar va sharsharalar haqida o‘qing. Har bir joy uchun tashrifga oid tavsiya bor.');
+  return layout(`${title} — Unistay`, `
+    <div class="wrap inside places-page">
+      <div class="places-intro">
+        <div class="places-intro-copy">
+          <h1>${title}</h1>
+          <p>${description}</p>
+          <div class="place-links">
+            ${placeGroups.map((group) => `<a class="button button--outline" href="#${group.id}">${t(group.title)} ${icon('down')}</a>`).join('')}
+          </div>
+        </div>
+        <img src="/assets/boysun.webp" alt="" width="1600" height="1067" fetchpriority="high">
+      </div>
+      ${placeGroups.map((group) => `
+        <section class="place-group" id="${group.id}" aria-labelledby="${group.id}-title">
+          <h2 id="${group.id}-title">${t(group.title)}</h2>
+          <div class="tour-grid">
+            ${group.places.map(({ [language]: place }) => `<article class="place-card card-body">
+              <div class="card-meta"><span>${icon('pin')}${escapeHtml(place.location)}</span></div>
+              <h3>${escapeHtml(place.name)}</h3>
+              <p>${escapeHtml(place.description)}</p>
+              <div class="place-tip">
+                <strong>${t('Tashrif tavsiyasi')}</strong>
+                <p>${escapeHtml(place.tip)}</p>
+              </div>
+            </article>`).join('')}
+          </div>
+        </section>
+      `).join('')}
+    </div>
+  `, { description, language, current: '/joylar', languageChoices: placesLanguages });
 }
 
 export function alert(message) {
@@ -212,7 +291,6 @@ export function tourDetail(tour, { payment, today, code, values = {}, error, lan
       <div class="detail-head">
         <div class="inline-tags">
           <span class="tag">${t(categoryNames[tour.category])}</span>
-          ${tour.sample ? sampleBadge(t('Namunaviy tur')) : ''}
         </div>
         <h1>${escapeHtml(tour.title)}</h1>
         <div class="detail-meta"><span>${icon('pin')}${escapeHtml(location(tour, language))}</span><span>${icon('calendar')}${duration(tour.days, language)}</span></div>
@@ -231,6 +309,7 @@ export function tourDetail(tour, { payment, today, code, values = {}, error, lan
         </article>
         <aside class="booking-card" aria-labelledby="booking-title" id="bron-forma">
           <div class="booking-price"><strong>${money(tour.price, language)}</strong><span> / ${t('kishi')}</span></div>
+          ${tour.sample ? `<p class="catalog-note">${t('Turpaket narxi kishi boshiga ko‘rsatilgan. Yakuniy narx safar sanasi va guruh hajmiga qarab tasdiqlanadi.')}</p>` : ''}
           <h2 id="booking-title">${t('Sayohatni bron qiling')}</h2>
           <form method="post" action="${localizedPath(current + '/bron', language)}" data-booking-form data-price="${tour.price}" data-currency="${currency(language)}">
             ${alert(error && t(error))}

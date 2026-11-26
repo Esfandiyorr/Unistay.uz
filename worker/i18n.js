@@ -3,10 +3,29 @@ const messages = {
     "Til": "Language",
     "Ichki turizm": "Domestic tours",
     "Tashqi turizm": "International tours",
+    "Gid xizmati": "Guide services",
+    "Turistik joylar": "Places to visit",
+    "Taxminiy narx": "Estimated price",
+    "Turpaket narxi kishi boshiga ko‘rsatilgan. Yakuniy narx safar sanasi va guruh hajmiga qarab tasdiqlanadi.": "Prices are per person. The final price depends on your travel date and group size.",
+    "Surxondaryoda mahalliy gid bilan shahar, obidalar va tog‘ yo‘nalishlarini kashf eting.": "Explore cities, historical sites and mountain routes in Surkhandarya with a local guide.",
+    "Gid tarifi 1–6 kishilik guruh uchun. Transport va kirish chiptalari alohida to‘lanadi.": "Guide rates are per group of 1–6 people. Transport and admission are charged separately.",
+    "guruh": "group",
+    "Termiz bo‘ylab shahar sayri": "Termez city walk",
+    "3 soatgacha": "Up to 3 hours",
+    "Termiz muzeyi yoki shahar markazi bo‘ylab qisqa ekskursiya.": "A short tour of the Termez museum or city center.",
+    "Tarixiy obidalar bo‘ylab gid": "Guide to historical sites",
+    "6 soatgacha": "Up to 6 hours",
+    "Fayoztepa, Sulton Saodat yoki Qirq qizdan tanlangan yo‘nalish.": "A custom route featuring Fayaz Tepe, Sultan Saodat or Qirq Qiz.",
+    "Tog‘ va tabiat yo‘nalishlari": "Mountain and nature routes",
+    "8 soatgacha": "Up to 8 hours",
+    "Boysun, Darband yoki Sangardakda mahalliy gid hamrohligi.": "A local guide in Boysun, Darband or Sangardak.",
+    "Surxondaryodagi tarixiy obidalar, tog‘lar va sharsharalar haqida o‘qing. Har bir joy uchun tashrifga oid tavsiya bor.": "Explore Surkhandarya’s historical sites, mountains and waterfalls, with a practical tip for each place.",
+    "Tarix va madaniyat": "History and culture",
+    "Tabiat va tog‘lar": "Nature and mountains",
+    "Tashrif tavsiyasi": "Visiting tip",
     "Tasdiq kutilmoqda": "Awaiting confirmation",
     "Tasdiqlangan": "Confirmed",
     "Bekor qilingan": "Cancelled",
-    "Namuna": "Sample",
     "Unistay bosh sahifasi": "Unistay home",
     "Unistay — Surxondaryo va xorij bo‘ylab turpaketlar va bronlash xizmati.": "Unistay — Discover and book tours in Surkhandarya and abroad.",
     "Asosiy mazmunga o‘tish": "Skip to main content",
@@ -45,7 +64,6 @@ const messages = {
     "Izohga bron kodini yozing. To‘lov tekshirilgach holat yangilanadi.": "Enter your booking code as the payment reference. We update the status after verifying your payment.",
     "To‘lov rekvizitlari hali kiritilmagan. Bronni yuborishingiz mumkin.": "Payment details are still pending. You can submit your booking now.",
     "Turpaketlarga qaytish": "Back to tours",
-    "Namunaviy tur": "Sample tour",
     "Bron formasiga o‘tish": "Go to booking form",
     "uchun illyustratsiya": "illustration",
     "Sayohat dasturi": "Itinerary",
@@ -105,10 +123,25 @@ const messages = {
     "Til": "Sprache",
     "Ichki turizm": "Inlandsreisen",
     "Tashqi turizm": "Auslandsreisen",
+    "Gid xizmati": "Reiseleitung",
+    "Turistik joylar": "Sehenswürdigkeiten",
+    "Taxminiy narx": "Richtpreis",
+    "Turpaket narxi kishi boshiga ko‘rsatilgan. Yakuniy narx safar sanasi va guruh hajmiga qarab tasdiqlanadi.": "Die Reisepreise gelten pro Person. Der Endpreis hängt vom Reisedatum und der Gruppengröße ab.",
+    "Surxondaryoda mahalliy gid bilan shahar, obidalar va tog‘ yo‘nalishlarini kashf eting.": "Entdecken Sie Städte, historische Stätten und Bergwege in Surxondaryo mit ortskundiger Reiseleitung.",
+    "Gid tarifi 1–6 kishilik guruh uchun. Transport va kirish chiptalari alohida to‘lanadi.": "Der Preis für die Reiseleitung gilt pro Gruppe von 1–6 Personen. Fahrt und Eintritt werden separat bezahlt.",
+    "guruh": "Gruppe",
+    "Termiz bo‘ylab shahar sayri": "Stadtführung in Termiz",
+    "3 soatgacha": "Bis zu 3 Stunden",
+    "Termiz muzeyi yoki shahar markazi bo‘ylab qisqa ekskursiya.": "Kurze Führung im Museum von Termiz oder im Stadtzentrum.",
+    "Tarixiy obidalar bo‘ylab gid": "Führung zu historischen Stätten",
+    "6 soatgacha": "Bis zu 6 Stunden",
+    "Fayoztepa, Sulton Saodat yoki Qirq qizdan tanlangan yo‘nalish.": "Eine Tour nach Wahl zu Fayaz Tepe, Sultan Saodat oder Qirq Qiz.",
+    "Tog‘ va tabiat yo‘nalishlari": "Touren durch Berge und Natur",
+    "8 soatgacha": "Bis zu 8 Stunden",
+    "Boysun, Darband yoki Sangardakda mahalliy gid hamrohligi.": "Ortskundige Begleitung in Boysun, Darband oder Sangardak.",
     "Tasdiq kutilmoqda": "Bestätigung ausstehend",
     "Tasdiqlangan": "Bestätigt",
     "Bekor qilingan": "Storniert",
-    "Namuna": "Beispiel",
     "Unistay bosh sahifasi": "Unistay-Startseite",
     "Unistay — Surxondaryo va xorij bo‘ylab turpaketlar va bronlash xizmati.": "Unistay — Reisen in Surxondaryo und im Ausland entdecken und buchen.",
     "Asosiy mazmunga o‘tish": "Zum Hauptinhalt springen",
@@ -147,7 +180,6 @@ const messages = {
     "Izohga bron kodini yozing. To‘lov tekshirilgach holat yangilanadi.": "Geben Sie Ihren Buchungscode als Verwendungszweck an. Nach Prüfung der Zahlung wird der Status aktualisiert.",
     "To‘lov rekvizitlari hali kiritilmagan. Bronni yuborishingiz mumkin.": "Die Zahlungsdaten folgen. Sie können Ihre Buchung bereits anfragen.",
     "Turpaketlarga qaytish": "Zurück zu den Reisen",
-    "Namunaviy tur": "Beispielreise",
     "Bron formasiga o‘tish": "Zum Buchungsformular",
     "uchun illyustratsiya": "Illustration",
     "Sayohat dasturi": "Reiseprogramm",
@@ -202,19 +234,41 @@ const messages = {
     "Ma’lumotlarni qayta yuboring.": "Bitte senden Sie Ihre Angaben erneut ab.",
     "Vaqtinchalik xatolik": "Vorübergehender Fehler",
     "Bir ozdan so‘ng qayta urinib ko‘ring.": "Versuchen Sie es gleich noch einmal."
+  },
+  "ru": {
+    "Til": "Язык",
+    "Unistay bosh sahifasi": "Главная страница Unistay",
+    "Asosiy mazmunga o‘tish": "Перейти к основному содержанию",
+    "Asosiy menyu": "Главное меню",
+    "Turpaketlar": "Туры",
+    "Bronlash tartibi": "Как забронировать",
+    "Bron holati": "Статус брони",
+    "Turistik joylar": "Что посмотреть",
+    "Surxondaryodagi tarixiy obidalar, tog‘lar va sharsharalar haqida o‘qing. Har bir joy uchun tashrifga oid tavsiya bor.": "Исторические памятники, горы и водопады Сурхандарьи с практическими советами для посещения.",
+    "Tarix va madaniyat": "История и культура",
+    "Tabiat va tog‘lar": "Природа и горы",
+    "Tashrif tavsiyasi": "Совет для посещения",
+    "Surxondaryo va xorij bo‘ylab sayohatlar.": "Путешествия по Сурхандарье и за рубежом.",
+    "Quyi menyu": "Нижнее меню",
+    "Admin panel": "Панель администратора"
   }
 };
 
 export const languages = { uz: 'O‘zbekcha', en: 'English', de: 'Deutsch' };
+export const placesLanguages = { uz: languages.uz, en: languages.en, ru: 'Русский' };
 export const translate = (language, text) => messages[language]?.[text] ?? text;
+const isPlacesPage = (pathname) => pathname === '/joylar' || pathname === '/joylar/';
 
 export function languageFor(url) {
   const selected = url.searchParams.get('lang');
-  return Object.hasOwn(languages, selected) ? selected : 'uz';
+  const choices = isPlacesPage(url.pathname) ? placesLanguages : languages;
+  return Object.hasOwn(choices, selected) ? selected : 'uz';
 }
 
 export function localizedPath(path, language) {
   const url = new URL(path, 'https://unistay.invalid');
+  if (language === 'ru' && !isPlacesPage(url.pathname)) language = 'uz';
+  if (language === 'de' && isPlacesPage(url.pathname)) language = 'en';
   if (language === 'uz') url.searchParams.delete('lang');
   else url.searchParams.set('lang', language);
   return url.pathname + url.search + url.hash;
