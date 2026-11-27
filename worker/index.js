@@ -2,7 +2,7 @@ import { languageFor, localizedPath } from './i18n.js';
 import { bookingTitle, localizeTour, tourTextLimits, translatedTourFields } from './tour-text.js';
 import { assets } from 'unistay:assets';
 import { ensureCatalog } from './catalog.js';
-import { cloudflareAdminAllowed } from './admin-access.js';
+import { cloudflareAdminAccessError } from './admin-access.js';
 import { adminBookings, adminPayment, adminTourForm, adminTours } from './admin-views.js';
 import { bookingResult, catalogCategories, categoryNames, home, infoPage, lookupPage, placesCatalog, statusNames, tourDetail } from './views.js';
 
@@ -155,15 +155,19 @@ async function saveBooking(db, id, form, language) {
   return redirect(localizedPath(`/bron/${code}`, language));
 }
 
-async function adminAllowed(request, env) {
+async function adminDenial(request, env, access) {
   const allowed = String(env.UNISTAY_ADMIN_EMAIL ?? '').trim().toLowerCase();
-  if (!allowed) return false;
   if (env.UNISTAY_ADMIN_AUTH === 'cloudflare-access') {
-    return cloudflareAdminAllowed(request, env, allowed);
+    const error = await cloudflareAdminAccessError(request, env, allowed, access);
+    return error ? html(infoPage('Admin panel', error, { admin: true }), 403) : null;
   }
-  if (!request.headers.get('oai-authenticated-user-id')) return false;
+  const signedIn = Boolean(request.headers.get('oai-authenticated-user-id'));
   const actual = request.headers.get('oai-authenticated-user-email')?.trim().toLowerCase();
-  return actual === allowed;
+  if (allowed && signedIn && actual === allowed) return null;
+  return html(infoPage(
+    'Admin panel', signedIn ? 'Bu ChatGPT hisobida admin panelga kirish huquqi yo‘q.' : 'Turpaketlarni boshqarish uchun ChatGPT hisobingiz orqali kiring.',
+    { admin: true, signIn: !signedIn },
+  ), signedIn ? 403 : 401);
 }
 
 function photoExtension(bytes) {
@@ -263,18 +267,7 @@ function pageNumber(value) {
   return value && inRange(value, 1, 1000000) ? Number(value) : 1;
 }
 
-async function adminRoute(request, env, url, form, authorized) {
-  if (!authorized) {
-    if (env.UNISTAY_ADMIN_AUTH === 'cloudflare-access') {
-      return html(infoPage('Admin panel', 'Cloudflare Access orqali administrator hisobingiz bilan kiring.', { admin: true }), 403);
-    }
-    const signedIn = Boolean(request.headers.get('oai-authenticated-user-id'));
-    return html(infoPage(
-      'Admin panel', signedIn ? 'Bu ChatGPT hisobida admin panelga kirish huquqi yo‘q.' : 'Turpaketlarni boshqarish uchun ChatGPT hisobingiz orqali kiring.',
-      { admin: true, signIn: !signedIn },
-    ), signedIn ? 403 : 401);
-  }
-
+async function adminRoute(env, url, form) {
   const db = env.DB;
   const [, , collection, id, extra] = url.pathname.split('/');
   if (extra !== undefined) return notFound();
@@ -321,7 +314,7 @@ async function adminRoute(request, env, url, form, authorized) {
   return html(adminTours(await list(db.prepare('SELECT * FROM tours ORDER BY sort_order, created_at DESC')), notice));
 }
 
-async function handle(request, env) {
+async function handle(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/$/, '') || '/';
   const method = request.method;
@@ -332,8 +325,6 @@ async function handle(request, env) {
   if (method !== 'POST' && path.startsWith('/assets/')) return assetResponse(request, path);
   if (method !== 'POST' && path.startsWith('/media/')) return mediaResponse(request, env, path);
 
-  let form;
-  let authorized;
   if (method === 'POST') {
     const origin = request.headers.get('Origin');
     // Our referrer policy can omit the origin of a same-origin browser form.
@@ -341,11 +332,15 @@ async function handle(request, env) {
     if (origin !== url.origin && !sameOriginForm) {
       return html(infoPage('So‘rov rad etildi', 'Formani Unistay sahifasidan qayta yuboring.', { language }), 403);
     }
+  }
+  if (isAdmin) {
+    const denial = await adminDenial(request, env, ctx?.access);
+    if (denial) return denial;
+  }
+
+  let form;
+  if (method === 'POST') {
     const adminUpload = path.startsWith('/admin/turlar/');
-    if (isAdmin) {
-      authorized = await adminAllowed(request, env);
-      if (!authorized) return adminRoute(request, env, url, undefined, false);
-    }
     if (Number(request.headers.get('content-length')) > (adminUpload ? MAX_PHOTO + MAX_FORM : MAX_FORM)) {
       return html(infoPage('Fayl juda katta', adminUpload ? 'Rasmni 5 MB gacha kichraytirib qayta yuklang.' : 'Formani tekshirib, qayta yuboring.', { language: adminUpload ? 'uz' : language }), 413);
     }
@@ -357,7 +352,7 @@ async function handle(request, env) {
   }
 
   url.pathname = path;
-  if (isAdmin) return adminRoute(request, env, url, form, authorized ?? await adminAllowed(request, env));
+  if (isAdmin) return adminRoute(env, url, form);
 
   const db = env.DB;
   if (path === '/' && !form) {
@@ -395,9 +390,9 @@ async function handle(request, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     try {
-      const response = await handle(request, env);
+      const response = await handle(request, env, ctx);
       return request.method === 'HEAD' ? new Response(null, response) : response;
     } catch (error) {
       console.error('Unistay request failed', error instanceof Error ? error.message : 'Unknown error');
